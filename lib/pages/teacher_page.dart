@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import '../models/app_settings.dart';
 
 /// Страница преподавателя
 class TeacherPage extends StatefulWidget {
-  const TeacherPage({super.key});
+  const TeacherPage({super.key, this.onGoToSettings});
+
+  final VoidCallback? onGoToSettings;
 
   @override
   State<TeacherPage> createState() => _TeacherPageState();
@@ -10,16 +13,13 @@ class TeacherPage extends StatefulWidget {
 
 class _TeacherPageState extends State<TeacherPage> {
   int _selected = -1;
-
-  final List<String> _options = [
-    '201', '202', '203', '204', '205', // 0-4
-    '212', '213', '214', '215', '216', '217', '218', '218а', '219', '220', '221', // 5-15
-    '222', '223', '224', '225', '226', '227', '228', '229', '230' // 16-24
-  ];
+  int _selectedCallButton = 0;
+  String? _selectedOffice;
 
   void _select(int index) {
     setState(() {
       _selected = index;
+      _selectedOffice = index >= 0 ? AppSettings.offices[index] : null;
     });
   }
 
@@ -39,7 +39,7 @@ class _TeacherPageState extends State<TeacherPage> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          _options[index],
+          AppSettings.offices[index],
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -48,6 +48,89 @@ class _TeacherPageState extends State<TeacherPage> {
           ),
         ),
       ),
+    );
+  }
+
+
+  void _selectdCallButton() {
+    setState(() {
+      _selectedCallButton = 1;
+    });
+
+    // Возврат в исходное состояние через 200 мс
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        setState(() {
+        _selectedCallButton = 0;
+        });
+      }
+    });
+
+    /// ToDo логика при нажатии
+  }
+  
+  Widget _buildCallButton() {
+    final bool isSelected = _selectedCallButton == 1;
+
+    return GestureDetector(
+      onTap: () => _selectdCallButton(),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        width: 150,
+        height: 150,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.deepPurple : Colors.white,
+          border: Border.all(color: Colors.deepPurple, width: 2.5),
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Text(
+          "Быстрый вызов",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight:FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.deepPurple,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _selectdOfficeButton() {
+    widget.onGoToSettings?.call();
+  }
+  
+  Widget _buildOfficeButton(String defaultText) {
+    return ValueListenableBuilder<String>(
+      valueListenable: AppSettings.defaultOffice,
+      builder: (context, defaultOffice, _) {
+        final displayText = _selectedOffice ?? defaultOffice;
+
+        return GestureDetector(
+          onTap: _selectdOfficeButton,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            width: 150,
+            height: 100,
+            alignment: Alignment.lerp(Alignment.topCenter, null, 0.4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.deepPurple, width: 2.5),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Text(
+              "Аудитория: $displayText",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+                color: Colors.deepPurple,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -92,6 +175,26 @@ class _TeacherPageState extends State<TeacherPage> {
         child: _buildToggleButton(5),
       ),
     );
+
+
+    /// Добавление кнопки аудитории
+    stack.add(
+      Positioned(
+        top: 430,
+        left: 10,
+        child: _buildOfficeButton(""),
+      ),
+    );
+
+    /// Добавление кнопки вызова
+    stack.add(
+      Positioned(
+        top: 480,
+        left: 10,
+        child: _buildCallButton(),
+      ),
+    );
+
 
     Container baseLayout = Container(
       width: 350,

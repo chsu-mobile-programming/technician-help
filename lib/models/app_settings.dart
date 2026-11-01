@@ -11,8 +11,7 @@ class AppSettings {
   static const _Role = 'role'; // Роль пользователя
 
   // Аудитория по умолчанию
-  static final ValueNotifier<String> defaultOffice =
-      ValueNotifier<String>('205');
+  static final ValueNotifier<String> defaultOffice = ValueNotifier<String>('205');
 
   /// Аккаунт: имя и фамилия (пустые строки, если не заданы)
   static final ValueNotifier<String> firstName = ValueNotifier<String>('');

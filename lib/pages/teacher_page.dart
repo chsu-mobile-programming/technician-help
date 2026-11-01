@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
+import '../models/call_request.dart';
 
 /// Страница преподавателя
 class TeacherPage extends StatefulWidget {
@@ -14,12 +15,12 @@ class TeacherPage extends StatefulWidget {
 class _TeacherPageState extends State<TeacherPage> {
   int _selected = -1;
   int _selectedCallButton = 0;
-  String? _selectedOffice;
+  String _selectedOffice = AppSettings.defaultOffice.value;
 
   void _select(int index) {
     setState(() {
       _selected = index;
-      _selectedOffice = index >= 0 ? AppSettings.offices[index] : null;
+      _selectedOffice = index >= 0 ? AppSettings.offices[index] : '';
     });
   }
 
@@ -61,12 +62,26 @@ class _TeacherPageState extends State<TeacherPage> {
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         setState(() {
-        _selectedCallButton = 0;
+          _selectedCallButton = 0;
         });
       }
     });
 
-    /// ToDo логика при нажатии
+    // === ЛОГИКА ВЫЗОВА ===
+    // Берем текущую выбранную аудиторию (или ту, что по умолчанию)
+    final office = _selectedOffice; 
+    final firstName = AppSettings.firstName.value;
+    final lastName = AppSettings.lastName.value;
+    final teacherName = '$lastName $firstName'.trim();
+
+    if (office.isNotEmpty && teacherName.isNotEmpty) {
+      CallManager.addCall(office, teacherName);
+      
+      // Опционально: показать всплывающее сообщение
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Вызов из ауд. $office отправлен')),
+      );
+    }
   }
   
   Widget _buildCallButton() {
@@ -105,7 +120,7 @@ class _TeacherPageState extends State<TeacherPage> {
     return ValueListenableBuilder<String>(
       valueListenable: AppSettings.defaultOffice,
       builder: (context, defaultOffice, _) {
-        final displayText = _selectedOffice ?? defaultOffice;
+        final displayText = _selectedOffice.isNotEmpty ? _selectedOffice : defaultOffice;
 
         return GestureDetector(
           onTap: _selectdOfficeButton,

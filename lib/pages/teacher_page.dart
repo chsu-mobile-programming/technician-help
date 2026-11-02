@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
-import '../models/call_request.dart';
+import '../services/call_manager_service.dart';
 
 /// Страница преподавателя
 class TeacherPage extends StatefulWidget {

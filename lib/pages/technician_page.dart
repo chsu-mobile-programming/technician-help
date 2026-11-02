@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/call_request.dart';
+import '../services/call_manager_service.dart';
 
 class TechnicianPage extends StatelessWidget {
   const TechnicianPage({super.key});
@@ -39,7 +40,7 @@ class TechnicianPage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Номер аудитории (крупно)
+          // Номер аудитории
           Text(
             call.office,
             style: const TextStyle(
@@ -78,7 +79,7 @@ class TechnicianPage extends StatelessWidget {
           ),
           const SizedBox(width: 16),
 
-          // Кнопка с галочкой
+          // Кнопка
           GestureDetector(
             onTap: () => CallManager.completeCall(call),
             child: Container(
@@ -88,7 +89,7 @@ class TechnicianPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border.all(color: Colors.black, width: 1.5),
-                borderRadius: BorderRadius.circular(30), // Овальная
+                borderRadius: BorderRadius.circular(30),
               ),
               child: const Icon(Icons.check, size: 32, color: Colors.black),
             ),

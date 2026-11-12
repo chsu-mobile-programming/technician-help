@@ -1,36 +1,24 @@
-import 'package:flutter/material.dart';
-
 class CallRequest {
   final String office;
   final String time;
   final String teacherName;
+  final String reason;
 
   CallRequest({
     required this.office,
     required this.time,
     required this.teacherName,
+    this.reason = '',
   });
-}
 
-class CallManager {
-  /// Список активных вызовов
-  static final ValueNotifier<List<CallRequest>> calls = ValueNotifier([]);
-
-  /// Добавить новый вызов
-  static void addCall(String office, String teacherName) {
-    final now = TimeOfDay.now();
-    final timeStr =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-
-    // Создаем новый список, чтобы ValueNotifier точно уведомил слушателей
-    calls.value = [
-      ...calls.value,
-      CallRequest(office: office, time: timeStr, teacherName: teacherName),
-    ];
-  }
-
-  /// Удалить вызов (когда техник нажал на галочку)
-  static void completeCall(CallRequest request) {
-    calls.value = calls.value.where((c) => c != request).toList();
+  /// «Фамилия И.» — фамилия полностью, имя сокращено до первой буквы.
+  /// Если в строке только одно слово — возвращаем его как есть.
+  String get shortTeacherName {
+    final parts = teacherName.trim().split(RegExp(r'\s+'));
+    if (parts.length < 2) return teacherName;
+    final lastName = parts.first;
+    final firstName = parts[1];
+    if (firstName.isEmpty) return lastName;
+    return '$lastName ${firstName[0]}.';
   }
 }

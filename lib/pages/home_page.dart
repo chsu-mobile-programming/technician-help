@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_role.dart';
-import '../models/app_settings.dart'; // путь к вашему файлу с AppSettings
+import '../models/app_settings.dart';
 import 'teacher_page.dart';
 import 'technician_page.dart';
 import 'settings_page.dart';
@@ -28,25 +28,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _pageAt(int index, UserRole role) {
-    switch (index) {
-      case 0:
-        return TeacherPage(
-          onGoToSettings: () => _onItemTapped(2, role),
-        );
-      case 1:
-        return TechnicianPage();
-      case 2:
-      default:
-        return SettingsPage(
-          role: role,
-          onRoleChanged: _onRoleChanged,
-        );
-    }
-  }
-
-  int _indexAt(UserRole role){
-    switch(role){
+  int _indexAt(UserRole role) {
+    switch (role) {
       case UserRole.teacher:
         return 0;
       case UserRole.technician:
@@ -59,7 +42,6 @@ class _HomePageState extends State<HomePage> {
     AppSettings.role.value = newRole;
     await AppSettings.save();
 
-    // Если текущая вкладка стала недоступной для новой роли — уводим в настройки
     if (!_isDestinationEnabled(_selectedIndex, newRole)) {
       setState(() => _selectedIndex = 2);
     }
@@ -82,7 +64,22 @@ class _HomePageState extends State<HomePage> {
       valueListenable: AppSettings.role,
       builder: (context, role, _) {
         return Scaffold(
-          body: _pageAt(_selectedIndex, role),
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              // 0 — Преподаватель
+              TeacherPage(
+                onGoToSettings: () => _onItemTapped(2, role),
+              ),
+              // 1 — Техник
+              const TechnicianPage(),
+              // 2 — Настройки
+              SettingsPage(
+                role: role,
+                onRoleChanged: _onRoleChanged,
+              ),
+            ],
+          ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _selectedIndex,
             onDestinationSelected: (i) => _onItemTapped(i, role),

@@ -45,6 +45,21 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _roleTile(UserRole role, String subtitle) {
+    return RadioListTile<UserRole>(
+      value: role,
+      groupValue: widget.role,
+      onChanged: (value) {
+        if (value != null && value != widget.role) {
+          widget.onRoleChanged(value);
+        }
+      },
+      title: Text(role.title),
+      subtitle: Text(subtitle),
+      secondary: Icon(role.icon),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,7 +67,6 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // === Аккаунт ===
           const Text(
             'Аккаунт',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -97,7 +111,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
           const SizedBox(height: 24),
 
-          // === Аудитория по умолчанию ===
           const Text(
             'Аудитория по умолчанию',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -118,7 +131,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: (value) async {
                   if (value == null) return;
                   AppSettings.defaultOffice.value = value;
-                  await AppSettings.save(); // сохраняем сразу
+                  await AppSettings.save();
                 },
               ),
             ),
@@ -126,7 +139,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
           const SizedBox(height: 24),
 
-          // === Роль ===
           const Text(
             'Роль',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -135,31 +147,14 @@ class _SettingsPageState extends State<SettingsPage> {
           Card(
             child: Column(
               children: [
-                RadioListTile<UserRole>(
-                  value: UserRole.teacher,
-                  groupValue: widget.role,
-                  onChanged: (value) {
-                    if (value != null && value != widget.role) {
-                      widget.onRoleChanged(value);
-                    }
-                  },
-                  title: const Text('Преподаватель'),
-                  subtitle: const Text('Доступ: страница преподавателя и настройки'),
-                  secondary: const Icon(Icons.person),
-                ),
+                _roleTile(UserRole.teacher,
+                    'Доступ: страница преподавателя и настройки'),
                 const Divider(height: 1),
-                RadioListTile<UserRole>(
-                  value: UserRole.technician,
-                  groupValue: widget.role,
-                  onChanged: (value) {
-                    if (value != null && value != widget.role) {
-                      widget.onRoleChanged(value);
-                    }
-                  },
-                  title: const Text('Техник'),
-                  subtitle: const Text('Доступ: страница техника и настройки'),
-                  secondary: const Icon(Icons.build),
-                ),
+                _roleTile(UserRole.technician,
+                    'Доступ: страница техника и настройки'),
+                const Divider(height: 1),
+                _roleTile(UserRole.admin,
+                    'Доступ: страницы преподавателя, техника и настройки'),
               ],
             ),
           ),

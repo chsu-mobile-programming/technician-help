@@ -13,49 +13,60 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  // Текущий выбранный индекс СРЕДИ ДОСТУПНЫХ вкладок
+  int _currentIndex = 0;
 
-  bool _isDestinationEnabled(int index, UserRole role) {
-    switch (index) {
-      case 0:
-        return role == UserRole.teacher;
-      case 1:
-        return role == UserRole.technician;
-      case 2:
-        return true;
-      default:
-        return false;
-    }
-  }
+  /// Возвращает список доступных вкладок для конкретной роли
+  List<_TabItem> _getTabsForRole(UserRole role) {
+    final allTabs = [
+      _TabItem(
+        id: 0,
+        icon: Icons.person_outline,
+        selectedIcon: Icons.person,
+        label: 'Преподаватель',
+        page: TeacherPage(),
+      ),
+      _TabItem(
+        id: 1,
+        icon: Icons.build_outlined,
+        selectedIcon: Icons.build,
+        label: 'Техник',
+        page: const TechnicianPage(),
+      ),
+      _TabItem(
+        id: 2,
+        icon: Icons.settings,
+        selectedIcon: Icons.settings,
+        label: 'Настройки',
+        page: null, // Создается отдельно, так как требует параметров
+      ),
+    ];
 
-  int _indexAt(UserRole role) {
     switch (role) {
       case UserRole.teacher:
-        return 0;
+        return [allTabs[0], allTabs[2]];
       case UserRole.technician:
-        return 1;
+        return [allTabs[1], allTabs[2]];
+      case UserRole.admin:
+        return allTabs;
     }
   }
 
-  /// Смена роли → пишем в AppSettings и сохраняем на диск
   Future<void> _onRoleChanged(UserRole newRole) async {
     AppSettings.role.value = newRole;
     await AppSettings.save();
 
-    if (!_isDestinationEnabled(_selectedIndex, newRole)) {
-      setState(() => _selectedIndex = 2);
+    // При смене роли сбрасываем индекс на первую доступную вкладку
+    setState(() => _currentIndex = 0);
+  }
+
+  /// Переход на вкладку настроек (вызывается из TeacherPage)
+  void _goToSettings(UserRole role) {
+    final tabs = _getTabsForRole(role);
+    final settingsIndex = tabs.indexWhere((t) => t.id == 2);
+    if (settingsIndex != -1) {
+      setState(() => _currentIndex = settingsIndex);
     }
-  }
-
-  void _onItemTapped(int index, UserRole role) {
-    if (!_isDestinationEnabled(index, role)) return;
-    setState(() => _selectedIndex = index);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIndex = _indexAt(AppSettings.role.value);
   }
 
   @override
@@ -63,50 +74,61 @@ class _HomePageState extends State<HomePage> {
     return ValueListenableBuilder<UserRole>(
       valueListenable: AppSettings.role,
       builder: (context, role, _) {
+        final tabs = _getTabsForRole(role);
+
+        // Защита от выхода индекса за пределы (например, при смене роли)
+        if (_currentIndex >= tabs.length) {
+          _currentIndex = 0;
+        }
+
+        // Формируем страницы для IndexedStack на основе доступных вкладок
+        final pages = tabs.map((tab) {
+          if (tab.id == 0) {
+            return TeacherPage(onGoToSettings: () => _goToSettings(role));
+          }
+          if (tab.id == 1) {
+            return const TechnicianPage();
+          }
+          return SettingsPage(role: role, onRoleChanged: _onRoleChanged);
+        }).toList();
+
         return Scaffold(
           body: IndexedStack(
-            index: _selectedIndex,
-            children: [
-              // 0 — Преподаватель
-              TeacherPage(
-                onGoToSettings: () => _onItemTapped(2, role),
-              ),
-              // 1 — Техник
-              const TechnicianPage(),
-              // 2 — Настройки
-              SettingsPage(
-                role: role,
-                onRoleChanged: _onRoleChanged,
-              ),
-            ],
+            index: _currentIndex,
+            children: pages,
           ),
           bottomNavigationBar: NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (i) => _onItemTapped(i, role),
-            destinations: [
-              _buildDestination(0, role, Icons.person_outline, Icons.person, 'Преподаватель'),
-              _buildDestination(1, role, Icons.build_outlined, Icons.build, 'Техник'),
-              _buildDestination(2, role, Icons.settings, Icons.settings, 'Настройки'),
-            ],
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() => _currentIndex = index);
+            },
+            destinations: tabs.map((tab) {
+              return NavigationDestination(
+                icon: Icon(tab.icon),
+                selectedIcon: Icon(tab.selectedIcon),
+                label: tab.label,
+              );
+            }).toList(),
           ),
         );
       },
     );
   }
+}
 
-  NavigationDestination _buildDestination(
-    int index,
-    UserRole role,
-    IconData icon,
-    IconData selectedIcon,
-    String label,
-  ) {
-    final enabled = _isDestinationEnabled(index, role);
-    return NavigationDestination(
-      icon: Icon(icon, color: enabled ? null : Colors.grey.shade400),
-      selectedIcon: Icon(selectedIcon, color: enabled ? null : Colors.grey.shade400),
-      label: label,
-      enabled: enabled,
-    );
-  }
+/// Вспомогательный класс для описания вкладки
+class _TabItem {
+  final int id;
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final Widget? page;
+
+  _TabItem({
+    required this.id,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    this.page,
+  });
 }

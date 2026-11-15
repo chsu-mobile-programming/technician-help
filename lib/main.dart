@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models/app_settings.dart';
 import 'pages/onboarding_page.dart';
 import 'pages/home_page.dart';
+import 'pages/test.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

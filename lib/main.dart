@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'pages/home_page.dart';
+import 'pages/test.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Техник, помоги',
       debugShowCheckedModeBanner: false,
-      home: const HomePage(),
+      home: const NearbyTestPage(),
     );
   }
 }

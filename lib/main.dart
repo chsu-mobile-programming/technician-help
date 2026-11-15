@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'models/app_settings.dart';
+import 'services/history_manager_service.dart';
 import 'pages/onboarding_page.dart';
 import 'pages/home_page.dart';
-import 'pages/test.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppSettings.load();
+  await HistoryManager.loadHistory(); 
   runApp(const MyApp());
 }
 

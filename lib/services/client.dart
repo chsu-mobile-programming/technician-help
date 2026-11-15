@@ -1,13 +1,13 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
-
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:nearby_connections/nearby_connections.dart';
 
 class NearbyPayload {
   static const String typeTicket = 'ticket';
   static const String typeAnswer = 'answer';
+  static const String typeStatusUpdate = 'status_update';
+  static const String typeCancel = 'cancel';
 
   static Uint8List encode(Map<String, dynamic> json) =>
       Uint8List.fromList(utf8.encode(jsonEncode(json)));
@@ -22,31 +22,25 @@ class NearbyPayload {
 }
 
 class Teacher {
-  new({required this.name});
+  Teacher({required this.name});
 
   final String name;
   final Nearby _nearby = Nearby();
   final String _serviceId = 'com.example.nearby_test';
 
-  final Map<String,String> _connectedTechnicians = {};
-
+  final Map<String, String> _connectedTechnicians = {};
   bool _isDiscovering = false;
 
   void Function(String endpointId, String name)? onTechnicianFound;
   void Function(String endpointId)? onTechnicianLost;
   void Function(Map<String, dynamic> answer, String fromEndpointId)? onAnswerRecieved;
 
-  Map<String,String> get connectedTechnicians => Map.unmodifiable(_connectedTechnicians);
-
-  Future<int> sendTicket(Map<String,dynamic> ticket) async {
-    //TODO: find all technicians
-
+  Future<int> sendTicket(Map<String, dynamic> ticket) async {
     final bytes = NearbyPayload.encode({
       ...ticket,
-      'type': NearbyPayload.typeTicket,
+      'type': ticket['type'] ?? NearbyPayload.typeTicket,
       'from': name,
     });
-
     var sent = 0;
     for (final endpointId in _connectedTechnicians.keys.toList()) {
       try {
@@ -57,7 +51,15 @@ class Teacher {
       }
     }
     return sent;
-    //TODO: store all sent tickets
+  }
+
+  // Рассылка статуса всем техникам
+  Future<void> broadcastStatusUpdate(String callId, String answeredBy) async {
+    await sendTicket({
+      'type': NearbyPayload.typeStatusUpdate,
+      'callId': callId,
+      'answeredBy': answeredBy,
+    });
   }
 
   Future<void> _requestConnection(String endpointId, String endpointName) async {
@@ -66,19 +68,18 @@ class Teacher {
       endpointId,
       onConnectionInitiated: (endpointId, conectionInfo) {
         _nearby.acceptConnection(
-          endpointId, 
+          endpointId,
           onPayLoadRecieved: (endpointId, payload) {
             final data = NearbyPayload.decode(payload.bytes!);
             if (data == null) return;
-            if (data['type'] == NearbyPayload.typeAnswer) {
+            if (data['type'] == NearbyPayload.typeAnswer || data['type'] == 'complete') {
               onAnswerRecieved?.call(data, endpointId);
-              //TODO: store all recieved answers?
             }
-          }
+          },
         );
       },
       onConnectionResult: (endpointId, status) {
-        if (status == Status.CONNECTED){
+        if (status == Status.CONNECTED) {
           _connectedTechnicians[endpointId] = endpointId;
         } else if (status == Status.REJECTED) {
           _connectedTechnicians.remove(endpointId);
@@ -87,14 +88,12 @@ class Teacher {
       onDisconnected: (endpointId) {
         _connectedTechnicians.remove(endpointId);
         onTechnicianLost?.call(endpointId);
-      });
+      },
+    );
   }
 
   Future<bool> start() async {
     if (_isDiscovering) return true;
-
-    //TODO: ensure permissions?
-
     final ok = await _nearby.startDiscovery(
       name,
       Strategy.P2P_STAR,
@@ -110,7 +109,6 @@ class Teacher {
         onTechnicianLost?.call(endpointId);
       },
     );
-
     _isDiscovering = ok;
     return ok;
   }
@@ -124,69 +122,62 @@ class Teacher {
 }
 
 class Technician {
-  new({required this.name});
+  Technician({required this.name});
 
   final String name;
   final Nearby _nearby = Nearby();
   final String _serviceId = 'com.example.nearby_test';
 
   bool _isAdvertising = false;
+  final Map<String, String> _connectedTeachers = {};
 
-  final Map<String,String> _connectedTeachers = {};
-  final List<(Map<String, dynamic> ticket, String endpointId)> _recievedTickets = [];
-
-  void Function(Map<String,dynamic> ticket, String fromEndpointId)? onTicketRecieved;
+  void Function(Map<String, dynamic> ticket, String fromEndpointId)? onTicketRecieved;
   void Function(String endPointId)? onTeacherDisconnected;
-
-  Map<String,String> get connectedTeachers => Map.unmodifiable(_connectedTeachers);
 
   Future<bool> start() async {
     if (_isAdvertising) return true;
-
     final ok = await _nearby.startAdvertising(
-      name, 
+      name,
       Strategy.P2P_STAR,
       onConnectionInitiated: ((endpointId, connectionInfo) {
         _nearby.acceptConnection(
-          endpointId, 
+          endpointId,
           onPayLoadRecieved: (endpointId, payload) {
             final data = NearbyPayload.decode(payload.bytes!);
             if (data == null) return;
-            if (data['type'] == NearbyPayload.typeTicket) {
-              _recievedTickets.add((data, endpointId));
+            // Принимаем ticket, cancel и status_update
+            final type = data['type'];
+            if (type == NearbyPayload.typeTicket || 
+                type == NearbyPayload.typeCancel || 
+                type == NearbyPayload.typeStatusUpdate) {
               onTicketRecieved?.call(data, endpointId);
             }
-          }
+          },
         );
-      }), 
+      }),
       onConnectionResult: (endpointId, status) {
         if (status == Status.CONNECTED) {
           _connectedTeachers[endpointId] = connectionName(endpointId);
         }
-      }, 
-      onDisconnected:(endpointId) {
+      },
+      onDisconnected: (endpointId) {
         _connectedTeachers.remove(endpointId);
         onTeacherDisconnected?.call(endpointId);
       },
-      serviceId: _serviceId);
-
+      serviceId: _serviceId,
+    );
     _isAdvertising = true;
     return ok;
   }
 
-Future<bool> sendAnswer(
-    Map<String, dynamic> answer, {
-    String? toEndpointId,
-  }) async {
+  Future<bool> sendAnswer(Map<String, dynamic> answer, {String? toEndpointId}) async {
     final target = toEndpointId;
-    if (target == null || !_connectedTeachers.containsKey(target)) {
-      return false;
-    }
+    if (target == null || !_connectedTeachers.containsKey(target)) return false;
 
     final bytes = NearbyPayload.encode({
       ...answer,
-      'type': NearbyPayload.typeAnswer,
-      'from': name,
+      'type': answer['type'] ?? NearbyPayload.typeAnswer,
+      'from': name, // Имя техника, который ответил
     });
 
     try {
@@ -197,8 +188,7 @@ Future<bool> sendAnswer(
     }
   }
 
-  String connectionName(String endpointId) =>
-    _connectedTeachers[endpointId] ?? 'teacher';
+  String connectionName(String endpointId) => _connectedTeachers[endpointId] ?? 'teacher';
 
   Future<void> stop() async {
     _isAdvertising = false;

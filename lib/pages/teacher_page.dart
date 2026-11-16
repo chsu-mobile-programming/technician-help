@@ -161,6 +161,32 @@ class _TeacherPageState extends State<TeacherPage> {
     );
   }
 
+
+  Widget _buildToggleButtonDisable(int index) {
+    final bool isSelected = _selected == index;
+    return GestureDetector(
+      onTap: null, // отключаем нажатие — кнопка недоступна
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        width: 50, height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.grey.shade400 : Colors.grey.shade200,
+          border: Border.all(color: Colors.grey.shade400, width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          AppSettings.offices[index],
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : Colors.grey.shade600,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCallButton() {
     final bool isSelected = _selectedCallButton == 1;
     return GestureDetector(
@@ -293,7 +319,21 @@ class _TeacherPageState extends State<TeacherPage> {
     List<Widget> stack = [];
     for (int i = 0; i < 5; i++) stack.add(Positioned(top: 40, left: 10 + 70.0 * i, child: _buildToggleButton(4 - i)));
     for (int i = 0; i < 10; i++) stack.add(Positioned(top: 100 + 55.0 * i, left: 290, child: _buildToggleButton(6 + i)));
-    for (int i = 0; i < 9; i++) stack.add(Positioned(top: 155 + 55.0 * i, left: 220, child: _buildToggleButton(24 - i)));
+
+
+    // Оставить все кабинеты доступными
+    //for (int i = 0; i < 9; i++) stack.add(Positioned(top: 155 + 55.0 * i, left: 220, child: _buildToggleButton(24 - i)));
+
+    // Оставить все кабинеты, некотоые заблокированы
+    for (int i = 0; i < 5; i++) stack.add(Positioned(top: 375 + 55.0 * i, left: 220, child: _buildToggleButtonDisable(20 - i)));
+    for (int i = 0; i < 4; i++) stack.add(Positioned(top: 155 + 55.0 * i, left: 220, child: _buildToggleButton(24 - i)));
+
+    // Оставить только нужные кабинеты
+    //stack.add(Positioned(top: 155, left: 220, child: _buildToggleButton(19)));
+    //stack.add(Positioned(top: 155 + 75, left: 220, child: _buildToggleButton(18)));
+    //stack.add(Positioned(top: 155 + 140, left: 220, child: _buildToggleButton(17)));
+    //stack.add(Positioned(top: 155 + 220, left: 220, child: _buildToggleButton(16)));
+    
     stack.add(Positioned(top: 100, left: 150, child: _buildToggleButton(5)));
     stack.add(Positioned(top: 430, left: 10, child: _buildOfficeButton("")));
     stack.add(Positioned(top: 200, left: 10, child: _buildReasonDropdown()));
